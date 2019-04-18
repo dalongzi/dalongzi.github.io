@@ -226,7 +226,7 @@
         begin.onclick = function() {
             clearInterval(timer);
             // timer = setInterval(snake.run(), 500);   // 先执行run函数，把执行得到的结果，每500毫秒执行一次，不会在执行内部代码
-            timer = setInterval("snake.run()", 500);  // 小技巧，每500毫秒执行字符串，字符串执行内部代码
+            timer = setInterval("snake.run()", 100);  // 小技巧，每500毫秒执行字符串，字符串执行内部代码
         };
 
 
