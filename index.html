@@ -1,236 +1,265 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport"
-          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Document</title>
-    <style type="text/css">
-        body {
-            margin: 0;
-            padding: 0;
-        }
-        .main {
-            width: 800px;
-            height: 400px;
-            margin: 50px auto;
-        }
-        .btn {
-            width: 100px;
-            height: 40px;
-        }
-        .map {
-            position: relative;
-            width: 800px;
-            height: 400px;
-            background: #ccc;
-        }
+    <style>
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      table caption {
+        font-size: 2em;
+        font-weight: bold;
+        margin: 1em 0;
+      }
+      th,
+      td {
+        border: 1px solid #999;
+        text-align: center;
+        padding: 20px 0;
+      }
+      table thead tr {
+        background-color: #008c8c;
+        color: #fff;
+      }
+      table tbody tr:nth-child(odd) {
+        background-color: #eee;
+      }
+      table tbody tr:hover {
+        background-color: #ccc;
+      }
+      table tbody tr td:first-child {
+        color: #f40;
+      }
+      table tfoot tr td {
+        text-align: right;
+        padding-right: 20px;
+      }
     </style>
-</head>
-<body>
-	<div class="main">
-    <button class="btn" id="begin">开始游戏</button>
-    <div class="map" id="map"></div>
+    <script src="vue.js"></script>
+  </head>
+  <body>
+    <div id="app">
+      <p>
+        模拟55级稀有强化，按照从10->15,依次需要（16，17，18，19，20）万金币计算
+      </p>
+      <br />
+      <p>请输入模拟次数，数字越大运算速度越慢，不需要填太大</p>
+      <form>
+        <div>
+          <label>模拟次数:</label>
+          <input type="number" min="0" v-model="round" />
+        </div>
+      </form>
+      <p>请输入你的强化目标，目前只支持11-15</p>
+      <form>
+        <div>
+          <label>目标:</label>
+          <input type="number" min="11" max="15" v-model="goal" />
+        </div>
+      </form>
+      <p>
+        请填入你有多少张强化券。使用强化券思路：当强化掉到10的时候扔强化券，从大到小的顺序扔强化券
+      </p>
+      <form>
+        <div>
+          <label>12强化券:</label>
+          <input type="number" min="0" v-model="quan12" />
+        </div>
+        <div>
+          <label>13强化券:</label>
+          <input type="number" min="0" v-model="quan13" />
+        </div>
+        <div>
+          <label>14强化券:</label>
+          <input type="number" min="0" v-model="quan14" />
+        </div>
+      </form>
+      <br />
+      <p>
+        是否使用催化剂，使用催化剂思路：只在当前强化等级的前5手强化使用催化剂（第六手失败就保底，所以第六手就干脆不用催化剂了），强11和强12不用催化剂，12上13用小催，13上14用小催，14上15用大催
+      </p>
+      <form>
+        <div>
+          <input type="checkbox" id="checkbox1" v-model="isCatalyst" /><label
+            for="checkbox1"
+            >是否使用催化剂</label
+          >
+        </div>
+      </form>
 
-    <script type="text/javascript">
-        var map = document.getElementById('map');
-        // 使用构造方法创建蛇，
-        function Snake(){
-            // 设置蛇的宽、高、默认走的方向
-            this.width = 10;
-            this.height = 10;
-            this.direction = 'right';
+      <br />
 
-            // 记住蛇的状态，当吃完食物的时候，就要加一个，初始为3个小点为一个蛇，
-            this.body = [
-                {x:2, y:0},   // 蛇头，第一个点
-                {x:1, y:0},   // 蛇脖子，第二个点
-                {x:0, y:0}    // 蛇尾，第三个点
-            ];
+      <button type="button" @click="momiqianghua">{{ message }}</button>
+      <table>
+        <caption>
+          {{message === '确认开始' ? '模拟' + round + '次强化' : '正在计算中，请稍后'}}
+        </caption>
+        <thead>
+          <tr>
+            <th></th>
+            <th>平均花费</th>
+            <th>{{ round }}次中最小花费</th>
+            <th>{{ round }}次中最大花费</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>10上{{ goal }}</td>
+            <td>{{ result.z10.mean }}万</td>
+            <td>{{ result.z10.min }}万</td>
+            <td>{{ result.z10.max }}万</td>
+          </tr>
+          <tr>
+            <td>11上{{ goal }}</td>
+            <td>{{ result.z11.mean }}万</td>
+            <td>{{ result.z11.min }}万</td>
+            <td>{{ result.z11.max }}万</td>
+          </tr>
+          <tr>
+            <td>12上{{ goal }}</td>
+            <td>{{ result.z12.mean }}万</td>
+            <td>{{ result.z12.min }}万</td>
+            <td>{{ result.z12.max }}万</td>
+          </tr>
+          <tr>
+            <td>13上{{ goal }}</td>
+            <td>{{ result.z13.mean }}万</td>
+            <td>{{ result.z13.min }}万</td>
+            <td>{{ result.z13.max }}万</td>
+          </tr>
+          <tr>
+            <td>14上{{ goal }}</td>
+            <td>{{ result.z14.mean }}万</td>
+            <td>{{ result.z14.min }}万</td>
+            <td>{{ result.z14.max }}万</td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="4">
+              强化机制参考请看：<a
+                href="https://www.bilibili.com/video/BV1GN4y1S7uz/?share_source=copy_web&vd_source=942632e1ecf34919b203a4a0ec9a5ccb"
+                target="_blank"
+                >https://www.bilibili.com/video/BV1GN4y1S7uz/?share_source=copy_web&vd_source=942632e1ecf34919b203a4a0ec9a5ccb</a
+              >
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+    <script>
+      const { createApp, ref, reactive } = Vue
 
-            // 显示蛇
-            this.display = function() {
-                // 创建蛇
-                for (var i=0; i<this.body.length; i++) {
-                    if (this.body[i].x != null) {   // 当吃到食物时，x==null，不能新建，不然会在0，0处新建一个
-                        var s = document.createElement('div');
-                        // 将节点保存到状态中，以便于后面删除
-                        this.body[i].flag = s;
-                        // 设置宽高
-                        s.style.width = this.width + 'px';
-                        s.style.height = this.height + 'px';
-                        s.style.borderRadius =  "50%";
-                        s.style.background = "rgb(" + Math.floor(Math.random()*256) + "," + Math.floor(Math.random()*256) + "," + Math.floor(Math.random()*256) + ")";
-                        // 设置位置
-                        s.style.position = 'absolute';
-                        s.style.left = this.body[i].x * this.width + 'px';
-                        s.style.top = this.body[i].y * this.height + 'px';
-                        // 添加进去
-                        map.appendChild(s);
+      createApp({
+        setup() {
+          const round = ref(200000) // 模拟次数
+          const goal = ref(15) // 强化目标
+          const quan12 = ref(0) // 12强化券
+          const quan13 = ref(0) // 13强化券
+          const quan14 = ref(0) // 14强化券
+          const isCatalyst = ref(false) // 是否使用催化剂
+          const result = reactive({
+            z10: { mean: 0, min: 0, max: 0 },
+            z11: { mean: 0, min: 0, max: 0 },
+            z12: { mean: 0, min: 0, max: 0 },
+            z13: { mean: 0, min: 0, max: 0 },
+            z14: { mean: 0, min: 0, max: 0 }
+          })
+          const message = ref('确认开始')
+
+          function generateRandomBoolean(num) {
+            return Math.random() < num
+          }
+
+          const momiqianghua = () => {
+            if (message.value === '正在计算，请勿重复点击') return
+            message.value = '正在计算，请勿重复点击'
+            setTimeout(() => {
+              for (let key in result) {
+                result[key] = { mean: 0, min: 0, max: 0 }
+                for (let i = 0; i < round.value; i++) {
+                  let d = Number(key.slice(1))
+                  let totalPrice = 0 // 这次强化的花费
+                  let q14 = quan14.value
+                  let q13 = quan13.value
+                  let q12 = quan12.value
+                  const equip = {
+                    10: { price: 16, minimum: 0 },
+                    11: { price: 17, minimum: 0 },
+                    12: { price: 18, minimum: 0 },
+                    13: { price: 19, minimum: 0 },
+                    14: { price: 20, minimum: 0 }
+                  }
+                  // console.log(d, goal.value)
+                  while (d < goal.value) {
+                    if (d === 10) {
+                      if (q14 > 0) {
+                        q14--
+                        d = 14
+                        continue
+                      }
+                      if (q13 > 0) {
+                        q13--
+                        d = 13
+                        continue
+                      }
+                      if (q12 > 0) {
+                        q12--
+                        d = 12
+                        continue
+                      }
                     }
-                }
-            };
-
-            // 让蛇跑起来,后一个元素到前一个元素的位置
-            // 蛇头根据方向处理，所以i不能等于0
-            this.run = function() {
-                // 后一个元素到前一个元素的位置
-                for (var i=this.body.length-1; i>0; i--) {
-                    this.body[i].x = this.body[i-1].x;
-                    this.body[i].y = this.body[i-1].y;
-                }
-
-                // 根据方向处理蛇头
-                switch(this.direction)
-                {
-                    case "left":
-                        this.body[0].x -= 1;
-                        break;
-                    case "right":
-                        this.body[0].x += 1;
-                        break;
-                    case "up":
-                        this.body[0].y -= 1;
-                        break;
-                    case "down":
-                        this.body[0].y += 1;
-                        break;
-                }
-
-                // 判断是否出界,一蛇头判断,出界的话，
-                if (this.body[0].x < 0 || this.body[0].x > 79 || this.body[0].y < 0 || this.body[0].y > 39) {
-                    clearInterval(timer);   // 清除定时器，
-                    alert("你瞎吗？撞死了！");
-                    // 删除旧的
-                    for (var i=0; i<this.body.length; i++) {
-                        if (this.body[i].flag != null) {   // 如果刚吃完就死掉，会加一个值为null的
-                            map.removeChild(this.body[i].flag);
-                        }
+                    totalPrice += equip[d].price
+                    let gailv = 0.2
+                    if (isCatalyst.value) {
+                      if (d === 14 && equip[d].minimum < 5) {
+                        gailv += 0.07
+                      } else if ((d === 12 || d === 13)  && equip[d].minimum < 5) {
+                        gailv += 0.04
+                      }
                     }
-                    this.body = [   // 回到初始状态，
-                        {x:2, y:0},
-                        {x:1, y:0},
-                        {x:0, y:0}
-                    ];
-                    this.direction = 'right';
-                    this.display();   // 显示初始状态
-                    return false;   // 结束
-                }
-
-                // 判断蛇头吃到食物，xy坐标重合，
-                if (this.body[0].x == food.x && this.body[0].y == food.y) {
-                    // 蛇加一节，因为根据最后节点定，下面display时，会自动赋值的
-                    this.body.push({x:null, y:null, flag: null});
-
-                    // 清除食物,重新生成食物
-                    map.removeChild(food.flag);
-                    food.display();
-                }
-
-                // 吃到自己死亡，从第五个开始与头判断，因为前四个永远撞不到
-                for (var i=4; i<this.body.length; i++) {
-                    if (this.body[0].x == this.body[i].x && this.body[0].y == this.body[i].y) {
-                        clearInterval(timer);   // 清除定时器，
-                        alert("傻子！你怎么能吃自己呢？");
-                        // 删除旧的
-                        for (var i=0; i<this.body.length; i++) {
-                            if (this.body[i].flag != null) {   // 如果刚吃完就死掉，会加一个值为null的
-                                map.removeChild(this.body[i].flag);
-                            }
-                        }
-                        this.body = [   // 回到初始状态，
-                            {x:2, y:0},
-                            {x:1, y:0},
-                            {x:0, y:0}
-                        ];
-                        this.direction = 'right';
-                        this.display();   // 显示初始状态
-                        return false;   // 结束
+                    if (equip[d].minimum >= 6 || generateRandomBoolean(gailv)) {
+                      equip[d].minimum = 0
+                      d++
+                    } else {
+                      equip[d].minimum++
+                      --d < 10 ? (d = 10) : d
                     }
+                  }
+                  result[key].mean += totalPrice
+                  result[key].max =
+                    result[key].max < totalPrice ? totalPrice : result[key].max
+                  result[key].min =
+                    result[key].min > totalPrice
+                      ? totalPrice
+                      : result[key].min === 0
+                      ? totalPrice
+                      : result[key].min
                 }
 
-                // 先删掉初始的蛇，在显示新蛇
-                for (var i=0; i<this.body.length; i++) {
-                    if (this.body[i].flag != null) {   // 当吃到食物时，flag是等于null，且不能删除
-                        map.removeChild(this.body[i].flag);
-                    }
-                }
+                result[key].mean =
+                  Math.round((result[key].mean / round.value) * 100) / 100
+              }
+              message.value = '确认开始'
+            }, 0)
+          }
 
-                // 重新显示蛇
-                this.display();
-
-            }
+          return {
+            round,
+            goal,
+            quan12,
+            quan13,
+            quan14,
+            isCatalyst,
+            result,
+            momiqianghua,
+            message
+          }
         }
-
-        // 构造食物
-        function Food()
-        {
-            this.width = 10;
-            this.height = 10;
-
-            this.display = function() {
-                var f = document.createElement('div');
-                this.flag = f;
-                f.style.width = this.width + 'px';
-                f.style.height = this.height + 'px';
-                f.style.background = 'red';
-                f.style.borderRadius = '50%';
-                f.style.position = 'absolute';
-                this.x = Math.floor(Math.random()*80);
-                this.y = Math.floor(Math.random()*40);
-                f.style.left = this.x * this.width + 'px';
-                f.style.top = this.y * this.height + 'px';
-                map.appendChild(f);
-            }
-        }
-
-        var snake = new Snake();
-        var food = new Food();
-        snake.display();   // 初始化显示
-        food.display();
-
-        // 给body加按键事件，上下左右
-        document.body.onkeydown = function(e) {
-            // 有事件对象就用事件对象，没有就自己创建一个，兼容低版本浏览器
-            var ev = e || window.event;
-
-            switch(ev.keyCode)
-            {
-                case 38:
-                    if (snake.direction != 'down') {   // 不允许返回，向上的时候不能向下
-                        snake.direction = "up";
-                    }
-                    break;
-                case 40:
-                    if (snake.direction != "up") {
-                        snake.direction = "down";
-                    }
-                    break;
-                case 37:
-                    if (snake.direction != "right") {
-                        snake.direction = "left";
-                    }
-                    break;
-                case 39:
-                    if (snake.direction != "left") {
-                        snake.direction = "right";
-                    }
-                    break;
-            }
-        };
-
-        // 点击开始时，动起来
-        var begin = document.getElementById('begin');
-        var timer;
-        begin.onclick = function() {
-            clearInterval(timer);
-            // timer = setInterval(snake.run(), 500);   // 先执行run函数，把执行得到的结果，每500毫秒执行一次，不会在执行内部代码
-            timer = setInterval("snake.run()", 100);  // 小技巧，每500毫秒执行字符串，字符串执行内部代码
-        };
-
-
+      }).mount('#app')
     </script>
-</div>
-</body>
+  </body>
 </html>
