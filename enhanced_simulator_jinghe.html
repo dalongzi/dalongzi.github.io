@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style>
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      table caption {
+        font-size: 2em;
+        font-weight: bold;
+        margin: 1em 0;
+      }
+      th,
+      td {
+        border: 1px solid #999;
+        text-align: center;
+        padding: 20px 0;
+      }
+      table thead tr {
+        background-color: #008c8c;
+        color: #fff;
+      }
+      table tbody tr:nth-child(odd) {
+        background-color: #eee;
+      }
+      table tbody tr:hover {
+        background-color: #ccc;
+      }
+      table tbody tr td:first-child {
+        color: #f40;
+      }
+      table tfoot tr td {
+        text-align: right;
+        padding-right: 20px;
+      }
+    </style>
+    <script src="vue.js"></script>
+  </head>
+  <body>
+    <div id="app">
+      <p>
+        模拟55级稀有强化，按照从10->15,依次需要（16，17，18，19，20）万金币计算
+      </p>
+      <br />
+      <p>请输入模拟次数，数字越大运算速度越慢，不需要填太大</p>
+      <form>
+        <div>
+          <label>模拟次数:</label>
+          <input type="number" min="0" v-model="round" />
+        </div>
+      </form>
+      <p>请输入你的强化目标，目前只支持11-15</p>
+      <form>
+        <div>
+          <label>目标:</label>
+          <input type="number" min="11" max="15" v-model="goal" />
+        </div>
+      </form>
+      <p>
+        请填入你有多少张强化券。使用强化券思路：当强化掉到10的时候扔强化券，从大到小的顺序扔强化券
+      </p>
+      <form>
+        <div>
+          <label>12强化券:</label>
+          <input type="number" min="0" v-model="quan12" />
+        </div>
+        <div>
+          <label>13强化券:</label>
+          <input type="number" min="0" v-model="quan13" />
+        </div>
+        <div>
+          <label>14强化券:</label>
+          <input type="number" min="0" v-model="quan14" />
+        </div>
+      </form>
+      <br />
+      <p>
+        是否使用催化剂，使用催化剂思路：只在当前强化等级的前5手强化使用催化剂（第六手失败就保底，所以第六手就干脆不用催化剂了），强11和强12不用催化剂，12上13用小催，13上14用小催，14上15用大催
+      </p>
+      <form>
+        <div>
+          <input type="checkbox" id="checkbox1" v-model="isCatalyst" /><label
+            for="checkbox1"
+            >是否使用催化剂</label
+          >
+        </div>
+      </form>
+
+      <br />
+
+      <button type="button" @click="momiqianghua">{{ message }}</button>
+      <table>
+        <caption>
+          {{message === '确认开始' ? '模拟' + round + '次强化' : '正在计算中，请稍后'}}
+        </caption>
+        <thead>
+          <tr>
+            <th></th>
+            <th>平均花费</th>
+            <th>{{ round }}次中最小花费</th>
+            <th>{{ round }}次中最大花费</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>10上{{ goal }}</td>
+            <td>{{ result.z10.mean }}万</td>
+            <td>{{ result.z10.min }}万</td>
+            <td>{{ result.z10.max }}万</td>
+          </tr>
+          <tr>
+            <td>11上{{ goal }}</td>
+            <td>{{ result.z11.mean }}万</td>
+            <td>{{ result.z11.min }}万</td>
+            <td>{{ result.z11.max }}万</td>
+          </tr>
+          <tr>
+            <td>12上{{ goal }}</td>
+            <td>{{ result.z12.mean }}万</td>
+            <td>{{ result.z12.min }}万</td>
+            <td>{{ result.z12.max }}万</td>
+          </tr>
+          <tr>
+            <td>13上{{ goal }}</td>
+            <td>{{ result.z13.mean }}万</td>
+            <td>{{ result.z13.min }}万</td>
+            <td>{{ result.z13.max }}万</td>
+          </tr>
+          <tr>
+            <td>14上{{ goal }}</td>
+            <td>{{ result.z14.mean }}万</td>
+            <td>{{ result.z14.min }}万</td>
+            <td>{{ result.z14.max }}万</td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="4">
+              强化机制参考请看：<a
+                href="https://www.bilibili.com/video/BV1GN4y1S7uz/?share_source=copy_web&vd_source=942632e1ecf34919b203a4a0ec9a5ccb"
+                target="_blank"
+                >https://www.bilibili.com/video/BV1GN4y1S7uz/?share_source=copy_web&vd_source=942632e1ecf34919b203a4a0ec9a5ccb</a
+              >
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+    <script>
+      const { createApp, ref, reactive } = Vue
+
+      createApp({
+        setup() {
+          const round = ref(200000) // 模拟次数
+          const goal = ref(15) // 强化目标
+          const quan12 = ref(0) // 12强化券
+          const quan13 = ref(0) // 13强化券
+          const quan14 = ref(0) // 14强化券
+          const isCatalyst = ref(false) // 是否使用催化剂
+          const result = reactive({
+            z10: { mean: 0, min: 0, max: 0 },
+            z11: { mean: 0, min: 0, max: 0 },
+            z12: { mean: 0, min: 0, max: 0 },
+            z13: { mean: 0, min: 0, max: 0 },
+            z14: { mean: 0, min: 0, max: 0 }
+          })
+          const message = ref('确认开始')
+
+          function generateRandomBoolean(num) {
+            return Math.random() < num
+          }
+
+          const momiqianghua = () => {
+            if (message.value === '正在计算，请勿重复点击') return
+            message.value = '正在计算，请勿重复点击'
+            setTimeout(() => {
+              for (let key in result) {
+                result[key] = { mean: 0, min: 0, max: 0 }
+                for (let i = 0; i < round.value; i++) {
+                  let d = Number(key.slice(1))
+                  let totalPrice = 0 // 这次强化的花费
+                  let q14 = quan14.value
+                  let q13 = quan13.value
+                  let q12 = quan12.value
+                  const equip = {
+                    10: { price: 16, minimum: 0 },
+                    11: { price: 17, minimum: 0 },
+                    12: { price: 18, minimum: 0 },
+                    13: { price: 19, minimum: 0 },
+                    14: { price: 20, minimum: 0 }
+                  }
+                  // console.log(d, goal.value)
+                  while (d < goal.value) {
+                    if (d === 10) {
+                      if (q14 > 0) {
+                        q14--
+                        d = 14
+                        continue
+                      }
+                      if (q13 > 0) {
+                        q13--
+                        d = 13
+                        continue
+                      }
+                      if (q12 > 0) {
+                        q12--
+                        d = 12
+                        continue
+                      }
+                    }
+                    totalPrice += equip[d].price
+                    let gailv = 0.2
+                    if (isCatalyst.value) {
+                      if (d === 14 && equip[d].minimum < 5) {
+                        gailv += 0.07
+                      } else if ((d === 12 || d === 13)  && equip[d].minimum < 5) {
+                        gailv += 0.04
+                      }
+                    }
+                    if (equip[d].minimum >= 6 || generateRandomBoolean(gailv)) {
+                      equip[d].minimum = 0
+                      d++
+                    } else {
+                      equip[d].minimum++
+                      --d < 10 ? (d = 10) : d
+                    }
+                  }
+                  result[key].mean += totalPrice
+                  result[key].max =
+                    result[key].max < totalPrice ? totalPrice : result[key].max
+                  result[key].min =
+                    result[key].min > totalPrice
+                      ? totalPrice
+                      : result[key].min === 0
+                      ? totalPrice
+                      : result[key].min
+                }
+
+                result[key].mean =
+                  Math.round((result[key].mean / round.value) * 100) / 100
+              }
+              message.value = '确认开始'
+            }, 0)
+          }
+
+          return {
+            round,
+            goal,
+            quan12,
+            quan13,
+            quan14,
+            isCatalyst,
+            result,
+            momiqianghua,
+            message
+          }
+        }
+      }).mount('#app')
+    </script>
+  </body>
+</html>
